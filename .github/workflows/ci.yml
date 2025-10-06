@@ -1,0 +1,79 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: productcatalog
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Build Backend
+      run: |
+        cd backend
+        dotnet restore
+        dotnet build --configuration Release --no-restore
+
+    - name: Test Unit Backend 
+      run: |
+        cd backend
+        dotnet test tests/UnitTests/ProductCatalogAPI.UnitTests.csproj --configuration Release  --verbosity normal
+      env:
+        ConnectionStrings__DefaultConnection: Server=localhost;Database=productcatalog;Uid=root;Pwd=password
+
+    - name: Test Integration Backend
+      run: |
+        cd backend
+        dotnet test tests/IntegrationTests/ProductCatalogAPI.IntegrationTests/ProductCatalogAPI.IntegrationTests.csproj --configuration Release  --verbosity normal
+      env:
+        ConnectionStrings__DefaultConnection: Server=localhost;Database=productcatalog;Uid=root;Pwd=password    
+
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+
+    - name: Test Docker Compose
+      run: |
+        docker-compose build
+        docker-compose up -d
+        sleep 30
+        
+        # Services verification
+        curl -f http://localhost:5000/api/Products || exit 1
+        curl -f http://localhost:3000 || exit 1
+        
+        docker-compose down

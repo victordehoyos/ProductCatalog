@@ -1,0 +1,13 @@
+{
+  "name": "product-catalog-load-tests",
+  "version": "1.0.0",
+  "scripts": {
+    "test:orders": "k6 run order-concurrency-test.js",
+    "test:products": "k6 run product-concurrency-test.js", 
+    "test:stock": "k6 run stock-conflict-test.js",
+    "test:all": "npm run test:orders && npm run test:products && npm run test:stock"
+  },
+  "devDependencies": {
+    "k6": "^0.0.0"
+  }
+}
