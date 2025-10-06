@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: productcatalog
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - product-catalog-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=productcatalog;Uid=root;Pwd=password
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+    ports:
+      - "5000:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - product-catalog-network
+    #volumes:
+    # - ./backend:/app
+    #  - /app/backend/bin
+    #  - /app/backend/obj
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:80
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - product-catalog-network
+    #volumes:
+    #  - ./frontend:/app
+    #  - /app/frontend/node_modules
+
+volumes:
+  mysql_data:
+
+networks:
+  product-catalog-network:
+    driver: bridge
