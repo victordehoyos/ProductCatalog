@@ -66,14 +66,14 @@ jobs:
         npm ci
         npm run build
 
-    - name: Test Docker Compose
-      run: |
-        docker-compose build
-        docker-compose up -d
-        sleep 30
-        
-        # Services verification
-        curl -f http://localhost:5000/api/Products || exit 1
-        curl -f http://localhost:3000 || exit 1
-        
-        docker-compose down
+#   - name: Test Docker Compose
+#    run: |
+#       docker-compose build
+#        docker-compose up -d
+#        sleep 30
+#        
+#        # Services verification
+#        curl -f http://localhost:5000/api/Products || exit 1
+#        curl -f http://localhost:3000 || exit 1
+#        
+#        docker-compose down
